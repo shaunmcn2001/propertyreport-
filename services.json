@@ -2,8 +2,8 @@
   "profiles": {
     "qld_cadastre_default": {
       "parcel": {
-        "service_url": "https://example.com/arcgis/rest/services/PlanningCadastre/LandParcelPropertyFramework/MapServer",
-        "layer_id": 4,
+        "service_url": "https://spatial-gis.information.qld.gov.au/arcgis/rest/services/PlanningCadastre/LandParcelPropertyFramework_TimeAware/MapServer",
+        "layer_id": 30,
         "lotplan_field": "lotplan",
         "lot_field": "lot",
         "plan_field": "plan"
