@@ -15,6 +15,9 @@
     small { color:#666; }
     #status { margin-top: 12px; }
     .muted { color:#555; font-size: 12px; }
+    #profileInfo { margin-top: 8px; font-size: 14px; line-height: 1.4; }
+    #profileInfo ul { margin: 4px 0 0 18px; padding: 0; }
+    #profileInfo code { word-break: break-all; }
   </style>
 </head>
 <body>
@@ -25,6 +28,7 @@
         <label for="profile">Service profile</label>
         <select id="profile"></select>
         <small>Profiles are read from <code>services.json</code>.</small>
+        <div id="profileInfo" class="muted"></div>
       </div>
     </div>
 
@@ -36,6 +40,8 @@
   </div>
 
 <script>
+let profilesCache = {};
+
 async function loadProfiles() {
   const sel = document.getElementById('profile');
   const previous = sel.value;
@@ -44,9 +50,11 @@ async function loadProfiles() {
     const res = await fetch('/services');
     const data = await res.json();
     const profiles = data.profiles || {};
+    profilesCache = profiles;
     const keys = Object.keys(profiles);
     if (keys.length === 0) {
       sel.innerHTML = '<option value="">(no profiles found)</option>';
+      updateProfileSummary(null);
       return;
     }
     for (const k of keys) {
@@ -57,9 +65,71 @@ async function loadProfiles() {
     }
     const toSelect = (previous && keys.includes(previous)) ? previous : keys[0];
     sel.value = toSelect;
+    updateProfileSummary(toSelect);
   } catch (e) {
     sel.innerHTML = '<option value="">(failed to load profiles)</option>';
+    updateProfileSummary(null);
   }
+}
+
+function updateProfileSummary(name) {
+  const info = document.getElementById('profileInfo');
+  info.innerHTML = '';
+  if (!name || !profilesCache[name]) {
+    info.textContent = 'Select a profile to view configured layers.';
+    return;
+  }
+
+  const profile = profilesCache[name] || {};
+  const fragment = document.createDocumentFragment();
+
+  if (profile.parcel) {
+    const parcelTitle = document.createElement('div');
+    parcelTitle.innerHTML = '<strong>Parcel service</strong>';
+    const parcelDetails = document.createElement('div');
+    const parcelUrl = profile.parcel.service_url || '';
+    const layerId = (profile.parcel.layer_id !== undefined && profile.parcel.layer_id !== null)
+      ? `/${profile.parcel.layer_id}` : '';
+    if (parcelUrl) {
+      parcelDetails.appendChild(document.createTextNode('Layer: '));
+      const code = document.createElement('code');
+      code.textContent = `${parcelUrl}${layerId}`;
+      parcelDetails.appendChild(code);
+    } else {
+      parcelDetails.textContent = 'Layer: (not configured)';
+    }
+    fragment.appendChild(parcelTitle);
+    fragment.appendChild(parcelDetails);
+  }
+
+  const layers = Array.isArray(profile.layers) ? profile.layers : [];
+  if (layers.length) {
+    const heading = document.createElement('div');
+    heading.style.marginTop = '8px';
+    heading.innerHTML = '<strong>Intersecting layers</strong>';
+    const list = document.createElement('ul');
+    for (const layer of layers) {
+      const li = document.createElement('li');
+      const label = layer.name || `Layer ${layer.layer_id ?? ''}`;
+      const layerUrl = layer.service_url || '';
+      const layerId = (layer.layer_id !== undefined && layer.layer_id !== null) ? `/${layer.layer_id}` : '';
+      if (layerUrl) {
+        li.textContent = `${label} – ${layerUrl}${layerId}`;
+      } else {
+        li.textContent = `${label} – (service URL not configured)`;
+      }
+      list.appendChild(li);
+    }
+    fragment.appendChild(heading);
+    fragment.appendChild(list);
+  } else {
+    const none = document.createElement('div');
+    none.style.marginTop = '8px';
+    none.textContent = 'No intersecting layers configured for this profile.';
+    fragment.appendChild(none);
+  }
+
+  info.appendChild(fragment);
 }
 
 async function exportKmz() {
@@ -103,6 +173,9 @@ async function exportKmz() {
 }
 
 document.getElementById('exportKmz').addEventListener('click', exportKmz);
+document.getElementById('profile').addEventListener('change', (ev) => {
+  updateProfileSummary(ev.target.value);
+});
 loadProfiles();
 </script>
 </body>
