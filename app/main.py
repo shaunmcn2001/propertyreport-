@@ -59,12 +59,14 @@ def export_kmz(payload: ExportRequest):
             continue
 
         parcel_folder = folder_root.newfolder(name=f"Parcel {lp}")
+        parcel_geom_folder = parcel_folder.newfolder(name="Parcel Boundary")
 
         # Add parcel polygons
         for feat in p_feats:
             geom = feat.get('geometry', {})
             if esri_geom_type(geom) == 'Polygon':
-                _rings_to_kml(parcel_folder, esri_polygon_to_rings_xy(geom), f"Parcel {lp}")
+                name = _best_name(feat.get('attributes') or {}, parcel_cfg, f"Parcel {lp}")
+                _rings_to_kml(parcel_geom_folder, esri_polygon_to_rings_xy(geom), name)
 
         # Intersect with all configured layers
         for layer in layers:
@@ -72,14 +74,20 @@ def export_kmz(payload: ExportRequest):
             lname = layer.get('name') or f"Layer {s_layer}"
             if not s_url or s_layer is None:
                 continue
+            layer_folder = parcel_folder.newfolder(name=lname)
             inter_fc = fetch_layer_intersection(s_url, int(s_layer), parcel_fc)
-            for feat in inter_fc.get('features', []):
+            feats = inter_fc.get('features', [])
+            if not feats:
+                layer_folder.description = "No intersecting features"
+                continue
+
+            for feat in feats:
                 geom = feat.get('geometry', {})
                 if esri_geom_type(geom) != 'Polygon':
                     continue
                 props = feat.get('attributes') or feat.get('properties') or {}
                 name = _best_name(props, layer, lname)
-                _rings_to_kml(parcel_folder, esri_polygon_to_rings_xy(geom), f"{lname}: {name}")
+                _rings_to_kml(layer_folder, esri_polygon_to_rings_xy(geom), name)
 
     # KMZ
     buf = io.BytesIO()

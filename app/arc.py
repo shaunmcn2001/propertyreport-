@@ -46,7 +46,11 @@ def fetch_layer_intersection(service_url: str, layer_id: int, parcel_fc: Dict[st
     feats = parcel_fc.get("features", [])
     if not feats:
         return {"features": []}
-    geom = feats[0].get("geometry")  # EsriJSON geometry
+
+    geom = _merge_polygon_geometries(feats)
+    if not geom:
+        return {"features": []}
+
     params = {
         "where": "1=1",
         "geometry": json.dumps(geom),
@@ -57,6 +61,33 @@ def fetch_layer_intersection(service_url: str, layer_id: int, parcel_fc: Dict[st
         "returnGeometry": "true",
     }
     return _arcgis_query(service_url, layer_id, params)
+
+
+def _merge_polygon_geometries(features: List[Dict[str, Any]]) -> Dict[str, Any] | None:
+    rings: List[List[List[float]]] = []
+    sr: Dict[str, Any] | None = None
+
+    for feat in features:
+        geom = feat.get("geometry") or {}
+        if "rings" not in geom:
+            continue
+        feat_rings = geom.get("rings") or []
+        if isinstance(feat_rings, list):
+            for ring in feat_rings:
+                if isinstance(ring, list) and ring:
+                    rings.append(ring)
+        if not sr and isinstance(geom.get("spatialReference"), dict):
+            sr = geom.get("spatialReference")
+
+    if not rings:
+        return None
+
+    merged: Dict[str, Any] = {"rings": rings}
+    if sr:
+        merged["spatialReference"] = sr
+    else:
+        merged["spatialReference"] = {"wkid": 4326}
+    return merged
 
 def esri_polygon_to_rings_xy(geom: Dict[str, Any]) -> List[List[Tuple[float, float]]]:
     """Return list of linear rings (outer first) as [(x,y), ...] in WGS84."""

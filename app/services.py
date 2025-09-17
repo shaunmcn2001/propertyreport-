@@ -14,6 +14,8 @@ class ParcelConfig(TypedDict, total=False):
     lotplan_field: str
     lot_field: str
     plan_field: str
+    name_field: str
+    code_field: str
 class Profile(TypedDict, total=False):
     parcel: ParcelConfig
     layers: List[LayerConfig]
