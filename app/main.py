@@ -6,14 +6,14 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import io, zipfile, simplekml, datetime as dt
 
-from app.services import list_profiles, get_profile
+from app.services import list_profiles
 from app.arc import fetch_parcel_by_lotplan, fetch_layer_intersection, esri_polygon_to_rings_xy, esri_geom_type
 
 app = FastAPI(title="PropertyReport – KMZ Export")
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
 
 class ExportRequest(BaseModel):
-    service_profile: str = Field(..., description="Name of services profile from services.json")
+    service_profile: Optional[str] = Field(None, description="Name of services profile from services.json")
     lotplans: List[str] = Field(..., description="Lot/Plan values (e.g., 2RP53435, 13SP181800)")
 
 @app.get('/health')
@@ -26,9 +26,17 @@ def services():
 
 @app.post('/export_kmz')
 def export_kmz(payload: ExportRequest):
-    prof = get_profile(payload.service_profile)
+    profiles = list_profiles()
+    profile_name = (payload.service_profile or "").strip()
+    if not profile_name:
+        if len(profiles) == 1:
+            profile_name = next(iter(profiles))
+        else:
+            raise HTTPException(400, "service_profile is required when multiple profiles are available")
+
+    prof = profiles.get(profile_name)
     if not prof:
-        raise HTTPException(400, f"Unknown service_profile: {payload.service_profile}")
+        raise HTTPException(400, f"Unknown service_profile: {profile_name}")
 
     parcel_cfg = (prof or {}).get('parcel') or {}
     p_url = parcel_cfg.get('service_url'); p_layer = parcel_cfg.get('layer_id')
