@@ -2,8 +2,8 @@
   "profiles": {
     "qld_cadastre_all": {
       "parcel": {
-        "service_url": "https://spatial-gis.information.qld.gov.au/arcgis/rest/services/PlanningCadastre/LandParcelPropertyFramework_TimeAware/MapServer",
-        "layer_id": 30,
+        "service_url": "https://<QLD>/arcgis/rest/services/PlanningCadastre/LandParcelPropertyFramework/MapServer",
+        "layer_id": 4,
         "lotplan_field": "lotplan",
         "lot_field": "lot",
         "plan_field": "plan"
@@ -11,7 +11,7 @@
       "layers": [
         {
           "name": "Land Types",
-          "service_url": "https://spatial-gis.information.qld.gov.au/arcgis/rest/services/Environment/LandTypes/MapServer",
+          "service_url": "https://<QLD>/arcgis/rest/services/Environment/LandTypes/MapServer",
           "layer_id": 1,
           "name_field": "LAND_TYPE",
           "code_field": "LANDCODE"
