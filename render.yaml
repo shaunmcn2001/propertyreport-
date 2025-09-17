@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: propertysales
+    name: propertyreport
     env: docker
     plan: free
     autoDeploy: true
@@ -8,6 +8,3 @@ services:
     envVars:
       - key: PORT
         value: 8000
-      # Optional: mount or point to a custom services.json file
-      # - key: ARCGIS_SERVICES_FILE
-      #   value: /data/services.json
