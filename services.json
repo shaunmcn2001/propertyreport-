@@ -1,0 +1,25 @@
+{
+  "profiles": {
+    "qld_cadastre_default": {
+      "parcel": {
+        "service_url": "https://example.com/arcgis/rest/services/PlanningCadastre/LandParcelPropertyFramework/MapServer",
+        "layer_id": 4,
+        "lotplan_field": "lotplan",
+        "lot_field": "lot",
+        "plan_field": "plan"
+      },
+      "landtypes": {
+        "service_url": "https://example.com/arcgis/rest/services/Environment/LandTypes/MapServer",
+        "layer_id": 1,
+        "name_field": "LAND_TYPE",
+        "code_field": "LANDCODE"
+      },
+      "vegetation": {
+        "service_url": "https://example.com/arcgis/rest/services/Environment/Vegetation/MapServer",
+        "layer_id": 0,
+        "name_field": "CLASSNAME",
+        "code_field": "CLASSCODE"
+      }
+    }
+  }
+}
