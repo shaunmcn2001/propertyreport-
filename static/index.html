@@ -38,6 +38,7 @@
 <script>
 async function loadProfiles() {
   const sel = document.getElementById('profile');
+  const previous = sel.value;
   sel.innerHTML = '';
   try {
     const res = await fetch('/services');
@@ -54,6 +55,8 @@ async function loadProfiles() {
       opt.textContent = k;
       sel.appendChild(opt);
     }
+    const toSelect = (previous && keys.includes(previous)) ? previous : keys[0];
+    sel.value = toSelect;
   } catch (e) {
     sel.innerHTML = '<option value="">(failed to load profiles)</option>';
   }
@@ -70,7 +73,10 @@ async function exportKmz() {
   }
   const lotplans = lotplansText.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
 
-  const payload = { service_profile: profile, lotplans };
+  const payload = { lotplans };
+  if (profile) {
+    payload.service_profile = profile;
+  }
   try {
     const res = await fetch('/export_kmz', {
       method: 'POST',
