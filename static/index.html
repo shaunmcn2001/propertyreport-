@@ -1,1 +1,103 @@
-<!doctype html><html><body><h1>PropertyReport</h1></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PropertyReport – KMZ Export</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+    .card { max-width: 760px; border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
+    label { display:block; margin-top: 12px; font-weight: 600; }
+    textarea, select { width: 100%; padding: 10px; margin-top:6px; box-sizing: border-box; }
+    button { margin-top: 16px; padding: 10px 16px; cursor: pointer; }
+    .row { display:flex; gap: 12px; }
+    .row > div { flex: 1; }
+    small { color:#666; }
+    #status { margin-top: 12px; }
+    .muted { color:#555; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>PropertyReport – KMZ Export</h1>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="profile">Service profile</label>
+        <select id="profile"></select>
+        <small>Profiles are read from <code>services.json</code>.</small>
+      </div>
+    </div>
+
+    <label for="lotplans">Lot/Plan values (one per line)</label>
+    <textarea id="lotplans" rows="6" placeholder="e.g.&#10;2RP53435&#10;13SP181800"></textarea>
+
+    <button id="exportKmz">Export KMZ</button>
+    <div id="status" class="muted"></div>
+  </div>
+
+<script>
+async function loadProfiles() {
+  const sel = document.getElementById('profile');
+  sel.innerHTML = '';
+  try {
+    const res = await fetch('/services');
+    const data = await res.json();
+    const profiles = data.profiles || {};
+    const keys = Object.keys(profiles);
+    if (keys.length === 0) {
+      sel.innerHTML = '<option value="">(no profiles found)</option>';
+      return;
+    }
+    for (const k of keys) {
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = k;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    sel.innerHTML = '<option value="">(failed to load profiles)</option>';
+  }
+}
+
+async function exportKmz() {
+  const status = document.getElementById('status');
+  status.textContent = 'Exporting…';
+  const profile = document.getElementById('profile').value;
+  const lotplansText = document.getElementById('lotplans').value.trim();
+  if (!lotplansText) {
+    status.textContent = 'Please enter at least one Lot/Plan.';
+    return;
+  }
+  const lotplans = lotplansText.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+
+  const payload = { service_profile: profile, lotplans };
+  try {
+    const res = await fetch('/export_kmz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error('Export failed: ' + text);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'export.kmz';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    status.textContent = 'Done.';
+  } catch (e) {
+    status.textContent = e.message;
+  }
+}
+
+document.getElementById('exportKmz').addEventListener('click', exportKmz);
+loadProfiles();
+</script>
+</body>
+</html>
